@@ -76,6 +76,16 @@ jobs:
           cd backend
           SUBSTORE_RELEASE=`node --eval="process.stdout.write(require('./package.json').version)"`
           echo "release_tag=$SUBSTORE_RELEASE" >> $GITHUB_OUTPUT
+      - name: Delete old releases and tags
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REPO="${{ github.repository }}"
+          tags=$(gh release list --repo "$REPO" --limit 1 | cut -f 1)
+          for tag in $tags; do
+            echo "Deleting release and tag: $tag"
+            gh release delete "$tag" --repo "$REPO" --yes --cleanup-tag
+          done
       - name: Prepare release
         run: |
           cd backend
@@ -99,17 +109,17 @@ jobs:
             ./backend/dist/proxy-utils.esm.mjs
             ./backend/dist/sub-store.bundle.js
             ./backend/dist/runtime-manifest.json
-      - name: Git push assets to "release" branch
-        run: |
-          cd backend/dist || exit 1
-          git init
-          git config --local user.name "github-actions[bot]"
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout -b release
-          git add .
-          git commit -m "release: ${{ steps.tag.outputs.release_tag }}"
-          git remote add origin "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}"
-          git push -f -u origin release
+      # - name: Git push assets to "release" branch
+      #   run: |
+      #     cd backend/dist || exit 1
+      #     git init
+      #     git config --local user.name "github-actions[bot]"
+      #     git config --local user.email "github-actions[bot]@users.noreply.github.com"
+      #     git checkout -b release
+      #     git add .
+      #     git commit -m "release: ${{ steps.tag.outputs.release_tag }}"
+      #     git remote add origin "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}"
+      #     git push -f -u origin release
       # - name: Sync to GitLab
       #   env:
       #     GITLAB_PIPELINE_TOKEN: ${{ secrets.GITLAB_PIPELINE_TOKEN }}
